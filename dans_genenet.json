@@ -1,0 +1,9 @@
+{
+    "learnrate" : 0.05,
+    "trials" : 2000000,
+    "npixels" : 1000,
+    "sampling" : 1000,
+    "decay_learnrate" : false,
+    "knockout_node" : 7,
+    "bias_node" : 6
+}

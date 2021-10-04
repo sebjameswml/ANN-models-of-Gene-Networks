@@ -5,6 +5,7 @@
 #include <string>
 #include <stdexcept>
 #include <morph/HdfData.h>
+#include <morph/Config.h>
 #include "RNet.h"
 #include "bitmap_image.hpp"
 
@@ -18,17 +19,21 @@ int main (int argc, char** argv)
         return 1;
     }
 
-    // Parameters
+    // Parameters given on command line
     const int ID = atoi(argv[1]);
-    const float learnrate = 0.05;
     const int N = atoi(argv[2]);
     const int N2 = N*N;
-    const int trials = 1000000; // 5,000,000 should produce extremely accurate reproductions and take 5 mins
-    const int npixels = 1000;
-    const int sampling = 1000;
-    const int decay = 0;
-    const int bias = 6;
-    const int konode = 7; // the first knockout will be this node, the second is konode + 1 and so on.
+
+    // Parameters taken from morph::Config
+    morph::Config conf("dans_genenet.json");
+    if (!conf.ready) { throw std::runtime_error ("Failed to open dans_genenet.json for config"); }
+    const float learnrate = conf.getFloat ("learnrate", 0.05f);
+    const int trials = conf.getInt ("trials", 1000000); // 5,000,000 should produce extremely accurate reproductions and take 2.5 mins
+    const int npixels = conf.getInt ("npixels", 1000);
+    const int sampling = conf.getInt ("sampling", 1000);
+    const bool decay = conf.getBool ("decay_learnrate", false);
+    const int bias = conf.getInt ("bias_node", 6);
+    const int konode = conf.getInt ("knockout_node", 7); // the first knockout will be this node, the second is konode + 1 and so on.
 
     // Set random seed
     srand(ID+1);
@@ -96,7 +101,7 @@ int main (int argc, char** argv)
     cout << "Looping over " << trials << " trials\n";
     for (int trial = 0; trial<trials; trial++) {
         // decrease learnrate over time if option selected in configs
-        if (decay==1) { rNet.learnrate = learnrate * std::exp(-trial*1/trials); }
+        if (decay == true) { rNet.learnrate = learnrate * std::exp(-trial*1/trials); }
 
         // Pick a random pixel and check its within the bounds of the ellipse
         rx = rand() % imageWidth;
