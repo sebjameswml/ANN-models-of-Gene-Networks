@@ -157,7 +157,7 @@ int main(int argc, char** argv){
                     // Pick a random pixel and check its within the bounds of the ellipse
                     rx = rand() % imageWidth;
                     ry = rand() % imageHeight;
-                    //equation of ellipse<=1
+                    // equation of ellipse<=1
                     if (((rx-imageWidth/2)/(imageWidth/2))*((rx-imageWidth/2)/(imageWidth/2))+
                         ((ry-imageHeight/2)/(imageHeight/2))*((ry-imageHeight/2)/(imageHeight/2))<=1) {
                         break;
@@ -198,13 +198,12 @@ int main(int argc, char** argv){
 
             errors.push_back (error);
             if (error < besterror) {
-                //cout<<error<<endl;
                 besterror = error;
                 rNet.best = rNet.weights;
                 if (error < 1) { break; }
             }
         }
-    }
+    } // end of loop over trials
 
     if (besterror < 10000) { // Save results
 
@@ -228,7 +227,7 @@ int main(int argc, char** argv){
         d.add_contained_vals ("/structure", weightexistence);
 
         rNet.weights = rNet.best;
-        //cout<<besterror<<endl;
+        cout << "The best error value achieved for these trials was: " << besterror << endl;
 
         std::vector<float> outputStates;
         for (int rk=0; rk<4; rk++) {
