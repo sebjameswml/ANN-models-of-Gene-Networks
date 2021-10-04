@@ -20,10 +20,8 @@ public:
     float p = 0.3;
     float p_link = 0.1;
 
-
     std::vector<int> weightexistence;
     std::vector<int> bestWE;
-
 
     int tal = 0;
     //The states of N genes:
@@ -40,8 +38,7 @@ public:
 
     //Initialise a random weights matrix
     std::vector<std::vector<Flt>> weights;
-    std::vector<std::vector<Flt>> store;
-    std::vector<std::vector<Flt>> best;
+    std::vector<std::vector<Flt>> best; // Holds a copy of the best weights
 
     //a matrix of small values to nudge the weights if required
     std::vector<std::vector<Flt>> nudge;
@@ -65,10 +62,6 @@ public:
         for (std::vector<Flt>& w_inner : this->weights) {
             w_inner.resize (this->N);
         }
-        this->store.resize (this->N);
-        for (std::vector<Flt>& w_inner : this->store) {
-            w_inner.resize (this->N);
-        }
         this->best.resize (this->N);
         for (std::vector<Flt>& w_inner : this->best) {
             w_inner.resize (this->N);
@@ -82,7 +75,6 @@ public:
 
         // init weights
         RNet<Flt>::randommatrix (this->weights);
-
 
         //initialise target as flexible (-1 is the free variable flag)
         for (int i=0; i<this->N; i++){
@@ -131,14 +123,14 @@ public:
         }
     }
 
-    void printTarget (void) const {
+    void printTarget() const {
         for (int i=0; i<this->N; i++) {
             cout << this->target[i] << " ";
         }
         cout << endl;
     }
 
-    void randomiseStates(void){
+    void randomiseStates() {
         for (int i=0; i<this->N; i++){
             this->states[i] = (Flt) rand() / (Flt) RAND_MAX;
         }
@@ -148,14 +140,14 @@ public:
         weights = initweights;
     }
 
-    void printState (void) const {
+    void printState() const {
         for (int i=0; i<this->N; i++) {
             cout << this->states[i] << " ";
         }
         cout << endl << endl;
     }
 
-    void printweights (void) const {
+    void printweights() const {
         for(int i=0;i<this->N;i++){
             for(int j=0;j<this->N;j++){
                 cout << this->weights[i][j] << " ";
@@ -164,7 +156,7 @@ public:
         }
     }
 
-    Flt error(void){
+    Flt error() {
         //Find squared difference between state and target
 
         float sum = 0;
@@ -178,7 +170,7 @@ public:
         return(sum);
     }
 
-    void updateWeights(void){
+    void updateWeights() {
         std::vector<Flt> deltas;
         deltas.resize(this->N);
         for(int i=0;i<(this->N);i++){deltas[i] = 0;}
@@ -246,7 +238,7 @@ public:
         //cout<<"weights"<<endl;RNet<Flt>::printweights();
     }
 
-    void step (void) {
+    void step() {
         //dot it and squash it
 
         //initialise result matrix
@@ -276,7 +268,7 @@ public:
         this->states = result;
     }
 
-    void converge(void){
+    void converge() {
         //do steps until the states are the same within 1/1000
         std::vector<Flt> copy;
         float total=1;
@@ -316,7 +308,7 @@ template <class Flt>
 class RNetBin : public RNet<Flt>
 {
 public:
-    void stepbin (void) {
+    void stepbin() {
         //dot it and squash it
 
         //RNet<Flt>::printState();
@@ -358,7 +350,7 @@ public:
         }
     }
 
-    void step (void) {
+    void step() {
         //dot it and squash it
 
         //RNet<Flt>::printState();
@@ -393,7 +385,7 @@ public:
         this->states = result;
     }
 
-    void converge (void) {
+    void converge() {
         //do steps until the states are the same within 1/1000
         std::vector<Flt> copy;
         float total=1;
@@ -433,7 +425,6 @@ public:
     }
 
 };
-
 
 
 // Example of a derived class with a specialisation of a method
@@ -569,6 +560,7 @@ public:
     }
 
 };
+
 
 template <class Flt>
 class RNetEvolve : public RNet<Flt>

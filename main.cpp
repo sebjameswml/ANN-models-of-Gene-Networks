@@ -12,6 +12,9 @@
 
 #include "bitmap_image.hpp"
 
+using std::cout;
+using std::endl;
+
 int main(int argc, char** argv){
 
     if (argc < 2){
@@ -19,42 +22,43 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    int ID = atoi(argv[1]);
-    float learnrate = 0.05;
+    const int ID = atoi(argv[1]);
+    const float learnrate = 0.05;
 
-    int N = atoi(argv[2]);
+    const int N = atoi(argv[2]);
+    const int N2 = N*N;
 
-    int trials = 1000000; //5,000,000 should produce extremely accurate reproductions and take a couple hours
+    const int trials = 1000000; // 5,000,000 should produce extremely accurate reproductions and take a couple hours
 
-    int npixels = 1000;
-    int sampling = 1000;
-    int decay = 0;
+    const int npixels = 1000;
+    const int sampling = 1000;
+    const int decay = 0;
 
-
-    //Set random seed
+    // Set random seed
     srand(ID+1);
 
     std::vector<int> inputs, outputs, weightexistence;
 
-    weightexistence.resize(N*N);
+    weightexistence.resize(N2);
 
     outputs = {2,3,4,5};
     inputs = {0,1};
     int bias = 6;
-    int konode = 7; //the first knockout will be this node, the second is konode + 1 and so on.
+    int konode = 7; // the first knockout will be this node, the second is konode + 1 and so on.
 
-    //This is the section where network structure is determined, in this case its a recurrent net.
-    //weightexistence is a flattened NxN matrix with 0s where there is no connection and 1 where there is.
+    // This is the section where network structure is determined, in this case its a
+    // recurrent net.  weightexistence is a flattened NxN matrix with 0s where there is
+    // no connection and 1 where there is.
 
-    for(int i=0; i<N*N; i++){
+    for (int i=0; i<N2; i++) {
         weightexistence[i] = 1;
     }
     //no weights back to bias node
-    for(int i=0; i<N; i++){
+    for (int i=0; i<N; i++) {
         weightexistence[i*N+bias] = 0;
     }
     //no self interaction
-    for(int i=0; i<N; i++){
+    for (int i=0; i<N; i++) {
         weightexistence[i*N+i] = 0;
     }
 
@@ -63,10 +67,9 @@ int main(int argc, char** argv){
     rNet.konode = konode;
     rNet.bias = bias;
 
-    for(int i=0;i<N*N;i++){
+    for (int i=0; i<N2; i++) {
         rNet.weightexistence[i] = weightexistence[i];
     }
-
 
     rNet.randommatrix(rNet.weights);
     rNet.randommatrix(rNet.best);
@@ -79,62 +82,66 @@ int main(int argc, char** argv){
     bitmap_image image4("knockoutimgs/4.bmp");
     images[0] = &image0; images[1] = &image1; images[2] = &image2; images[3] = &image3; images[4] = &image4;
 
-    int imageWidth = image0.width();
-    int imageHeight = image0.height();
+    const unsigned int imageWidth = image0.width();
+    const unsigned int imageHeight = image0.height();
     for (int i = 1; i < 5; i++) {
         if (images[i]->width() != imageWidth || images[i]->height() != imageHeight) {
             throw std::runtime_error ("Check bitmaps");
         }
     }
 
-    float rx;
-    float ry;
-    int rk;
+    float rx = 0.0f;
+    float ry = 0.0f;
+    int rk = 0;
 
-    float x;
-    float y;
+    float x = 0.0f;
+    float y = 0.0f;
 
     float besterror = 10000;
-    float sum;
+    float sum = 0.0f;
     int bestcolor = 0;
 
     //flag to say if a pixel has been picked which doesn't have an appropriate colour.
     int flag;
 
-    std::vector<std::vector<int>> areacolours{{255,255,255},{255,0,0},{0,0,255},{0,255,0},{255,0,255}};
-    std::vector<std::vector<float>> targetmappings{{0,0,0,0},{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+    std::vector<rgb_t> areacolours (5);
+    areacolours[0] = make_colour (255,255,255);
+    areacolours[1] = make_colour (255,  0,  0);
+    areacolours[2] = make_colour (  0,  0,255);
+    areacolours[3] = make_colour (  0,255,  0);
+    areacolours[4] = make_colour (255,  0,255);
+    std::vector<std::vector<float>> targetmappings{ {0,0,0,0}, {1,0,0,0}, {0,1,0,0}, {0,0,1,0}, {0,0,0,1} };
 
     std::vector<float> errors;
 
     rNet.learnrate = learnrate;
-    for(int trial = 0;trial<trials;trial++){
-        //f(trial%(trials/100)==0){cout<<trial<<" "<<besterror<<endl;}
+    cout << "Looping over " << trials << " trials\n";
+    for (int trial = 0; trial<trials; trial++) {
+        // if(trial%(trials/100)==0) { cout<<trial<<" "<<besterror<<endl; }
 
-        //decrease learnrate over time if option selected in configs
-        if(decay==1){rNet.learnrate = learnrate*exp(-trial*1/trials);}
+        // decrease learnrate over time if option selected in configs
+        if (decay==1) { rNet.learnrate = learnrate * std::exp(-trial*1/trials); }
 
-
-        //Pick a random pixel and check its within the bounds of the ellipse
+        // Pick a random pixel and check its within the bounds of the ellipse
         rx = rand() % imageWidth;
         ry = rand() % imageHeight;
-        x =  rx /  imageWidth;
-        y =  ry /  imageHeight;
+        x =  rx / imageWidth;
+        y =  ry / imageHeight;
 
-        //Pick a random knockout image
+        // Pick a random knockout image
         rk = rand() % 4;
 
-        //set the target based on the colour of the pixel
+        //cout << "rx,ry = " << rx << "," << ry << " and x,y = "<< x << "," << y << " and rk = " << rk << endl;
 
-        //first get the colour
+        // Set the target based on the colour of the pixel:
+
+        // first get the colour
         rgb_t colour;
-        rgb_t match;
-        images[rk]->get_pixel(int(rx), int(ry), colour);
+        images[rk]->get_pixel (int(rx), int(ry), colour);
 
-        flag = 0;
-
+        flag = 0; // colour match flag
         for (int i=0; i<5; i++) {
-            match = make_colour(areacolours[i][0],areacolours[i][1],areacolours[i][2]);
-            if (colour==match) {
+            if (colour == areacolours[i]) {
                 for (int n=0; n<4; n++) {
                     rNet.target[outputs[0]+n] = targetmappings[i][n];
                 }
@@ -144,56 +151,45 @@ int main(int argc, char** argv){
             }
         }
 
-        if (flag == 1) {
+        if (flag == 1) { // The colour matched!
             rNet.randomiseStates();
-            //make the bias term 1
-            rNet.states[bias]=1;
+            rNet.states[bias] = 1; // why do we make the bias term 1?
             rNet.states[0] = x;
             rNet.states[1] = y;
-            //the argument here tells the network which node to knockout
-            rNet.average(rk); //settles the network
-
-            rNet.updateWeights(); //implements backpropagation algorithm
+            rNet.average(rk); // settles the network. The argument here tells the network which node to knockout
+            rNet.updateWeights(); // implements backpropagation algorithm
         }
 
+        // over sample of trials (every sample-th trial), pick npixels and measure the error over them
+        if (trial%sampling == 0) {
+            int tally = 0; // A tally of random pixels drawn from the images
+            float error = 0.0f;
+            while (tally < npixels) {
 
-        //over sample of trials, pick npixels and measure the error over them
-        if(trial%sampling==0){//
-            int tally=0;
-            float error=0;
-            while(tally<npixels){
-
-                while(true){
-                    //Pick a random pixel and check its within the bounds of the ellipse
+                while (true) {
+                    // Pick a random pixel and check its within the bounds of the ellipse
                     rx = rand() % imageWidth;
                     ry = rand() % imageHeight;
                     //equation of ellipse<=1
                     if (((rx-imageWidth/2)/(imageWidth/2))*((rx-imageWidth/2)/(imageWidth/2))+
-                        ((ry-imageHeight/2)/(imageHeight/2))*((ry-imageHeight/2)/(imageHeight/2))<=1){
+                        ((ry-imageHeight/2)/(imageHeight/2))*((ry-imageHeight/2)/(imageHeight/2))<=1) {
                         break;
                     }
-                }
+                } // Now have an in-bounds random pixel defined by rx, ry
 
-                x = (float) rx / (float) imageWidth;
-                y = (float) ry / (float) imageHeight;
+                x = rx / (float) imageWidth;
+                y = ry / (float) imageHeight;
+                rk = rand() % 4; // Randomly select one of the training images to pick a pixel from
 
-                rk = rand() % 4;
-
-                //set the target based on the colour of the pixel
-
-                //first get the colour
+                // set the target based on the colour of the pixel
                 rgb_t colour;
-                rgb_t match;
-                images[rk]->get_pixel(int(rx), int(ry), colour);
-
+                images[rk]->get_pixel (int(rx), int(ry), colour);
 
                 flag = 0;
-
-
-                for(int i=0;i<5;i++){
-                    match = make_colour(areacolours[i][0],areacolours[i][1],areacolours[i][2]);
-                    if(colour==match){
-                        for(int n=0;n<4;n++){
+                for (int i=0;i<5;i++) {
+                    // Get the colour for
+                    if (colour == areacolours[i]) {
+                        for(int n=0; n<4; n++) {
                             rNet.target[outputs[0]+n] = targetmappings[i][n];
                         }
                         rNet.inputs[inputs[0]] = x;
@@ -202,8 +198,7 @@ int main(int argc, char** argv){
                     }
                 }
 
-                if(flag == 1){
-
+                if (flag == 1) { // colour match
                     rNet.randomiseStates();
                     rNet.states[bias]=1;
                     rNet.states[0] = x;
@@ -212,25 +207,20 @@ int main(int argc, char** argv){
                     error = error + rNet.error();
                     tally = tally + 1;
                 }
-
             }
 
-            errors.push_back(error);
-            if(error<besterror){
+            errors.push_back (error);
+            if (error < besterror) {
                 //cout<<error<<endl;
-                besterror=error;
+                besterror = error;
                 rNet.best = rNet.weights;
-                if(error<1){break;}
+                if (error < 1) { break; }
             }
         }
-
-
-
-
-
-
     }
-    if(besterror<10000){
+
+    if (besterror < 10000) { // Save results
+
         std::string file = "results/" + std::to_string(ID) + ".h5";
         morph::HdfData d(file);
 
@@ -255,17 +245,15 @@ int main(int argc, char** argv){
         //cout<<besterror<<endl;
 
         std::vector<float> outputStates;
-        for (int rk=0;rk<4;rk++){
+        for (int rk=0; rk<4; rk++) {
             //At the end generate an image from the set of weights
             bitmap_image generated(150,100);
 
             // set background to white
             generated.clear();
 
-            rgb_t inputcolour;
-
-            for(float x=0;x<imageWidth;x++){
-                for(float y=0;y<imageHeight;y++){
+            for (float x=0; x<imageWidth; x++) {
+                for (float y=0; y<imageHeight; y++) {
                     rNet.inputs[inputs[0]] = x/imageWidth;
                     rNet.inputs[inputs[1]] = y/imageHeight;
 
@@ -282,8 +270,6 @@ int main(int argc, char** argv){
                             outputStates.push_back(rNet.states[n]);}
                     }
 
-
-
                     besterror = 20;
                     //find out what colour the pixel is by finding the least distance to the 5 options
                     for(int i =0;i<5;i++){
@@ -296,19 +282,15 @@ int main(int argc, char** argv){
                             bestcolor = i;
                         }
                     }
-                    inputcolour = make_colour(areacolours[bestcolor][0],areacolours[bestcolor][1],areacolours[bestcolor][2]);
-                    generated.set_pixel(x,y,inputcolour);
-
+                    generated.set_pixel (x, y, areacolours[bestcolor]);
                 }
             }
 
             std::string bmpfile = "results/"+std::to_string(ID)+"-"+std::to_string(rk)+ ".bmp";
             generated.save_image(bmpfile);
-
-
         }
 
-        d.add_contained_vals("/outputstates",outputStates);
+        d.add_contained_vals ("/outputstates", outputStates);
         //rNet.printweights();
     }
     return(0);
