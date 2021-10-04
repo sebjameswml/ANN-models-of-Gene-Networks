@@ -28,7 +28,7 @@ int main(int argc, char** argv){
     const int N = atoi(argv[2]);
     const int N2 = N*N;
 
-    const int trials = 1000000; // 5,000,000 should produce extremely accurate reproductions and take a couple hours
+    const int trials = 1000000; // 5,000,000 should produce extremely accurate reproductions and take 5 mins
 
     const int npixels = 1000;
     const int sampling = 1000;
