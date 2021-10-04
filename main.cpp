@@ -1,15 +1,11 @@
 #include <iostream>
 #include <vector>
-#include <algorithm>
-#include <random>
+#include <cstdlib>
 #include <cmath>
-#include <sstream>
-#include <cstdio>
 #include <string>
 #include <stdexcept>
 #include <morph/HdfData.h>
 #include "RNet.h"
-
 #include "bitmap_image.hpp"
 
 using std::cout;
@@ -277,7 +273,6 @@ int main(int argc, char** argv){
         }
 
         d.add_contained_vals ("/outputstates", outputStates);
-        //rNet.printweights();
     }
-    return(0);
+    return 0;
 }
