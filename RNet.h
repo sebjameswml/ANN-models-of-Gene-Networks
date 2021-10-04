@@ -2,14 +2,14 @@
 #include <vector>
 #include <cmath>
 #include <cstdio>
-#include <sstream>
-#include <string>
 
+using std::cout;
+using std::endl;
 
-using namespace std;
+//from an arbitrary initial state to an arbitrary target what does the error landscape
+//look like, is it smooth and does it have many local minima?
 
-//from an arbitrary initial state to an arbitrary target what does the error landscape look like, is it smooth and does it have many local minima?
-
+// A Recurrent network class.
 template <class Flt>
 class RNet
 {
@@ -21,17 +21,17 @@ public:
     float p_link = 0.1;
 
 
-    vector<int> weightexistence;
-    vector<int> bestWE;
+    std::vector<int> weightexistence;
+    std::vector<int> bestWE;
 
-    
+
     int tal = 0;
     //The states of N genes:
-    vector<Flt> states;
-    vector<Flt> avstates;
+    std::vector<Flt> states;
+    std::vector<Flt> avstates;
 
-    vector<Flt> inputs;
-    vector<Flt> target;
+    std::vector<Flt> inputs;
+    std::vector<Flt> target;
 
     Flt learnrate = 0.1;
 
@@ -39,18 +39,16 @@ public:
     int bias = 2;
 
     //Initialise a random weights matrix
-    vector<vector<Flt>> weights;
-    vector<vector<Flt>> store;
-    vector<vector<Flt>> best;
+    std::vector<std::vector<Flt>> weights;
+    std::vector<std::vector<Flt>> store;
+    std::vector<std::vector<Flt>> best;
 
     //a matrix of small values to nudge the weights if required
-    vector<vector<Flt>> nudge;
+    std::vector<std::vector<Flt>> nudge;
 
 
-    RNet (void) {
-
-
-        // Resize vectors
+    RNet() {
+        // Resize std::vectors
         this->states.resize (this->N);
         this->avstates.resize (this->N);
 
@@ -64,19 +62,19 @@ public:
         for(int i=0;i<(this->N*this->N);i++){this->bestWE[i] = 1;};
 
         this->weights.resize (this->N);
-        for (vector<Flt>& w_inner : this->weights) {
+        for (std::vector<Flt>& w_inner : this->weights) {
             w_inner.resize (this->N);
         }
         this->store.resize (this->N);
-        for (vector<Flt>& w_inner : this->store) {
+        for (std::vector<Flt>& w_inner : this->store) {
             w_inner.resize (this->N);
         }
         this->best.resize (this->N);
-        for (vector<Flt>& w_inner : this->best) {
+        for (std::vector<Flt>& w_inner : this->best) {
             w_inner.resize (this->N);
         }
         this->nudge.resize (this->N);
-        for (vector<Flt>& w_inner : this->nudge) {
+        for (std::vector<Flt>& w_inner : this->nudge) {
             w_inner.resize (this->N);
         }
 
@@ -97,7 +95,7 @@ public:
         }
     }
 
-    int randommatrix(vector<vector<Flt>> &A) {
+    int randommatrix(std::vector<std::vector<Flt>> &A) {
         //alters matrix in memory! Does not make copy
 
         //find the size of matrices
@@ -118,7 +116,6 @@ public:
         }
         //cout<<"randomised"<<endl;
         //this->printweights();
-
         return(0);
     }
 
@@ -127,7 +124,6 @@ public:
             states[i] = initstate;
         }
     }
-
 
     void setAllTargetStates(Flt initstate){
         for (int i=0; i<this->N; i++) {
@@ -142,17 +138,15 @@ public:
         cout << endl;
     }
 
-
     void randomiseStates(void){
         for (int i=0; i<this->N; i++){
             this->states[i] = (Flt) rand() / (Flt) RAND_MAX;
         }
     }
 
-    void setweights(vector<vector<Flt>>initweights){
+    void setweights(std::vector<std::vector<Flt>>initweights){
         weights = initweights;
     }
-
 
     void printState (void) const {
         for (int i=0; i<this->N; i++) {
@@ -185,15 +179,15 @@ public:
     }
 
     void updateWeights(void){
-        vector<Flt> deltas;
+        std::vector<Flt> deltas;
         deltas.resize(this->N);
         for(int i=0;i<(this->N);i++){deltas[i] = 0;}
 
-        vector<int> visits;
+        std::vector<int> visits;
         visits.resize(this->N);
         for(int i=0;i<(this->N);i++){visits[i] = 0;}
 
-        vector<int> fixed;
+        std::vector<int> fixed;
         fixed.resize(this->N);
         for(int i=0;i<(this->N);i++){fixed[i] = 0;}
 
@@ -209,7 +203,7 @@ public:
         int visitcount;
         int test = 0;
         while(true){ //will loop until the list of visits is full
-        
+
             test++;
             visitcount = 0;
 
@@ -221,11 +215,9 @@ public:
                             if(fixed[i]==0){
                                 //dot product
                                 deltas[i] += this->weights[i][j]*deltas[j];
-
                             }
                         }
                         visits[j]=1;
-
                     }
                 }
             }
@@ -252,14 +244,13 @@ public:
             }
         }
         //cout<<"weights"<<endl;RNet<Flt>::printweights();
-
     }
 
     void step (void) {
         //dot it and squash it
 
         //initialise result matrix
-        vector<Flt> result(this->N);
+        std::vector<Flt> result(this->N);
         Flt total;
 
         //generate dot product
@@ -279,16 +270,15 @@ public:
         //add input
         for(int i=0; i<this->N; i++){
             result[i] = result[i] + inputs[i];
-        }       
+        }
 
         // At end, update states with result:
         this->states = result;
-
     }
 
     void converge(void){
         //do steps until the states are the same within 1/1000
-        vector<Flt> copy;
+        std::vector<Flt> copy;
         float total=1;
         copy.resize (this->N);
         int count = 0;
@@ -318,9 +308,7 @@ public:
             for(int i=0;i<this->N;i++){
                 total = total + (states[i]-copy[i])*(states[i]-copy[i]);
             }
-
         }
-
     }
 };
 
@@ -333,7 +321,7 @@ public:
 
         //RNet<Flt>::printState();
         //initialise result matrix
-        vector<Flt> result(this->N);
+        std::vector<Flt> result(this->N);
         Flt total;
 
         //generate dot product
@@ -344,7 +332,7 @@ public:
             }
             result[i] = total;
         }
-        this->states = result;        
+        this->states = result;
         //cout<<"dotproduct"<<endl;RNet<Flt>::printState();
         //squash
         for(int i=0; i<this->N; i++){
@@ -358,7 +346,7 @@ public:
         //add input
         for(int i=0; i<this->N; i++){
             result[i] = result[i] + this->inputs[i];
-        }       
+        }
 
         //THE STOCHASTIC BINARY BIT
         //Go through each node value and collapse it to a binary value based on probability
@@ -367,7 +355,7 @@ public:
             if(((Flt) rand() / (Flt) RAND_MAX )<result[i]){
                 this->states[i] = 1;
             }
-        }  
+        }
     }
 
     void step (void) {
@@ -375,7 +363,7 @@ public:
 
         //RNet<Flt>::printState();
         //initialise result matrix
-        vector<Flt> result(this->N);
+        std::vector<Flt> result(this->N);
         Flt total;
 
         //generate dot product
@@ -386,7 +374,7 @@ public:
             }
             result[i] = total;
         }
-        this->states = result;        
+        this->states = result;
         //cout<<"dotproduct"<<endl;RNet<Flt>::printState();
         //squash
         for(int i=0; i<this->N; i++){
@@ -400,14 +388,14 @@ public:
         //add input
         for(int i=0; i<this->N; i++){
             result[i] = result[i] + this->inputs[i];
-        }       
+        }
 
-        this->states = result; 
+        this->states = result;
     }
 
-    void converge(void){
+    void converge (void) {
         //do steps until the states are the same within 1/1000
-        vector<Flt> copy;
+        std::vector<Flt> copy;
         float total=1;
         copy.resize (this->N);
         int count = 0;
@@ -426,7 +414,7 @@ public:
                     }
                 }
 
-                //cout<<"reset"<<endl;  
+                //cout<<"reset"<<endl;
                 count = 0;
                 break;
             }
@@ -441,7 +429,7 @@ public:
             }
 
         }
-        
+
     }
 
 };
@@ -459,7 +447,7 @@ public:
         //RNet<Flt>::printweights();
         //RNet<Flt>::printState();
         //initialise result matrix
-        vector<Flt> result(this->N);
+        std::vector<Flt> result(this->N);
         Flt total;
 
 
@@ -477,7 +465,7 @@ public:
             }
             result[i] = total;
         }
-        this->states = result;        
+        this->states = result;
         //cout<<"dotproduct"<<endl;RNet<Flt>::printState();
         //squash
         for(int i=0; i<this->N; i++){
@@ -494,7 +482,7 @@ public:
         //add input
         for(int i=0; i<this->N; i++){
             result[i] = result[i] + this->inputs[i];
-        }       
+        }
         this->states = result;
         //cout<<"squashed"<<endl;RNet<Flt>::printState();
 
@@ -504,13 +492,13 @@ public:
     }
 
     void average(int knockout){
-    
-    for(int n=0;n<50;n++){        
+
+    for(int n=0;n<50;n++){
         //update the states
         this->step(knockout);
-        }    
-    
-    for(int n=0;n<50;n++){        
+        }
+
+    for(int n=0;n<50;n++){
         //update the states
         this->step(knockout);
         //add them to average
@@ -534,7 +522,7 @@ public:
 
     void converge(int knockout){
         //do steps until the states are the same within 1/1000
-        vector<Flt> copy;
+        std::vector<Flt> copy;
         float total=1;
         copy.resize (this->N);
         int count = 0;
@@ -553,7 +541,7 @@ public:
                     }
                 }
 
-                //cout<<"reset"<<endl;  
+                //cout<<"reset"<<endl;
                 count = 0;
                 break;
             }
@@ -569,7 +557,7 @@ public:
             for(int i=0;i<this->N;i++){
                 total = total + (this->states[i]-copy[i])*(this->states[i]-copy[i]);
             }
-            
+
 
         }
         //Final knockout to make deltas and weight updates correct
@@ -599,7 +587,7 @@ public:
             }
         }
         //for each weight, increment or decrement by the learnrate, with probability p.
-        
+
 
         for(int i=0; i<this->N; i++){
             for(int j=0; j<this->N; j++){
@@ -624,7 +612,7 @@ public:
 
         //RNet<Flt>::printState();
         //initialise result matrix
-        vector<Flt> result(this->N);
+        std::vector<Flt> result(this->N);
         Flt total;
 
 
@@ -636,7 +624,7 @@ public:
             }
             result[i] = total;
         }
-        this->states = result;        
+        this->states = result;
         //cout<<"dotproduct"<<endl;RNet<Flt>::printState();
         //squash
         for(int i=0; i<this->N; i++){
@@ -650,7 +638,7 @@ public:
         //add input
         for(int i=0; i<this->N; i++){
             result[i] = result[i] + this->inputs[i];
-        }       
+        }
         this->states = result;
         //cout<<"squashed"<<endl;RNet<Flt>::printState();
 
@@ -662,7 +650,7 @@ public:
 
     int converge(void){
         //do steps until the states are the same within 1/1000
-        vector<Flt> copy;
+        std::vector<Flt> copy;
         float total=1;
         copy.resize (this->N);
         int count = 0;
