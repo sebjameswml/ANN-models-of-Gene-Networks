@@ -37,39 +37,27 @@ int main(int argc, char** argv){
     // Set random seed
     srand(ID+1);
 
-    std::vector<int> inputs, outputs, weightexistence;
-
-    weightexistence.resize(N2);
-
-    outputs = {2,3,4,5};
-    inputs = {0,1};
     int bias = 6;
     int konode = 7; // the first knockout will be this node, the second is konode + 1 and so on.
+
+    std::vector<int> inputs = {0,1};
+    std::vector<int> outputs = {2,3,4,5};
+    std::vector<int> weightexistence (N2, 1);
 
     // This is the section where network structure is determined, in this case its a
     // recurrent net.  weightexistence is a flattened NxN matrix with 0s where there is
     // no connection and 1 where there is.
 
-    for (int i=0; i<N2; i++) {
-        weightexistence[i] = 1;
-    }
-    //no weights back to bias node
-    for (int i=0; i<N; i++) {
-        weightexistence[i*N+bias] = 0;
-    }
-    //no self interaction
-    for (int i=0; i<N; i++) {
-        weightexistence[i*N+i] = 0;
-    }
+    // no weights back to bias node
+    for (int i=0; i<N; i++) { weightexistence[i*N+bias] = 0; }
+    // no self interaction
+    for (int i=0; i<N; i++) { weightexistence[i*N+i] = 0; }
 
     RNetKnock<float> rNet;
     rNet.N = N;
     rNet.konode = konode;
     rNet.bias = bias;
-
-    for (int i=0; i<N2; i++) {
-        rNet.weightexistence[i] = weightexistence[i];
-    }
+    rNet.weightexistence = weightexistence;
 
     rNet.randommatrix(rNet.weights);
     rNet.randommatrix(rNet.best);
@@ -98,11 +86,10 @@ int main(int argc, char** argv){
     float y = 0.0f;
 
     float besterror = 10000;
-    float sum = 0.0f;
     int bestcolor = 0;
 
-    //flag to say if a pixel has been picked which doesn't have an appropriate colour.
-    int flag;
+    // flag to say if a pixel has been picked which has an appropriate colour.
+    int flag = 0;
 
     std::vector<rgb_t> areacolours (5);
     areacolours[0] = make_colour (255,255,255);
@@ -151,9 +138,9 @@ int main(int argc, char** argv){
             }
         }
 
-        if (flag == 1) { // The colour matched!
+        if (flag == 1) { // The colour matched for at least one area!
             rNet.randomiseStates();
-            rNet.states[bias] = 1; // why do we make the bias term 1?
+            rNet.states[bias] = 1; // One node in the network is the 'bias' node and is set to 1
             rNet.states[0] = x;
             rNet.states[1] = y;
             rNet.average(rk); // settles the network. The argument here tells the network which node to knockout
@@ -224,22 +211,21 @@ int main(int argc, char** argv){
         std::string file = "results/" + std::to_string(ID) + ".h5";
         morph::HdfData d(file);
 
-        d.add_contained_vals("/x",errors);
-        d.add_val("/besterror",besterror);
-        d.add_val("/learnrate",learnrate);
-        d.add_val("/numberofnodes",rNet.N);
+        d.add_contained_vals ("/x", errors);
+        d.add_val ("/besterror", besterror);
+        d.add_val ("/learnrate", learnrate);
+        d.add_val ("/numberofnodes", rNet.N);
 
-        //flatten the weights matrix into a vector
+        // flatten the weights matrix into a vector
         std::vector<float> bestweights;
-
-        for(int i=0;i<rNet.N;i++){
-            for(int j=0;j<rNet.N;j++){
-                bestweights.push_back(rNet.best[i][j]);
+        for (int i=0; i<rNet.N; i++) {
+            for (int j=0; j<rNet.N; j++) {
+                bestweights.push_back (rNet.best[i][j]);
             }
         }
 
-        d.add_contained_vals("/bestweights",bestweights);
-        d.add_contained_vals("/structure",weightexistence);
+        d.add_contained_vals ("/bestweights", bestweights);
+        d.add_contained_vals ("/structure", weightexistence);
 
         rNet.weights = rNet.best;
         //cout<<besterror<<endl;
@@ -258,23 +244,24 @@ int main(int argc, char** argv){
                     rNet.inputs[inputs[1]] = y/imageHeight;
 
                     rNet.randomiseStates();
-                    rNet.states[bias]=1;
+                    rNet.states[bias] = 1;
                     rNet.states[0] = x/imageWidth;
                     rNet.states[1] = y/imageHeight;
                     rNet.average(rk);
-                    if(rk==0){
+                    if (rk == 0) {
                         outputStates.push_back(x);
                         outputStates.push_back(y);
-                        //log all the values for all nodes, one long vector of form [x0,y0,n0,n1...]
-                        for(int n = 0;n<rNet.N; n++){
-                            outputStates.push_back(rNet.states[n]);}
+                        // log all the values for all nodes, one long vector of form [x0,y0,n0,n1...]
+                        for (int n = 0; n<rNet.N; n++) {
+                            outputStates.push_back (rNet.states[n]);
+                        }
                     }
 
                     besterror = 20;
-                    //find out what colour the pixel is by finding the least distance to the 5 options
-                    for(int i =0;i<5;i++){
-                        sum = 0;
-                        for(int node=0;node<4;node++){
+                    // find out what colour the pixel is by finding the least distance to the 5 options
+                    for (int i=0; i<5; i++) {
+                        float sum = 0.0f;
+                        for (int node=0; node<4; node++) {
                             sum = sum + (rNet.states[outputs[0]+node]-targetmappings[i][node])*(rNet.states[outputs[0]+node]-targetmappings[i][node]);
                         }
                         if (sum < besterror){
