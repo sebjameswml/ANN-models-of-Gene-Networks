@@ -17,6 +17,7 @@ public:
 
     std::vector<Flt> inputs;    // Vector of inputs. size < N. Might be 2 (for x and y)
     std::vector<Flt> target;    // The target output states. Might be 4 for 4 identifiable area types.
+    std::vector<Flt> result;    // A temporary variable used in the step() function. Size N.
 
     Flt learnrate = 0.1;        // Learning rate of the algorithm
 
@@ -37,6 +38,7 @@ public:
         this->states.resize (this->N);
         RNet<Flt>::randomiseStates();
         this->avstates.resize (this->N);
+        this->result.resize (this->N);
 
         // initialise inputs as 0
         this->inputs.resize (this->N, 0);
@@ -203,9 +205,7 @@ protected:
     // Perform one forward pass step of the network
     void step()
     {
-        // initialise result matrix
-        std::vector<Flt> result(this->N);
-        Flt total;
+        Flt total = Flt{0};
 
         // generate dot product
         for (int i=0; i<this->N; i++) {
@@ -213,17 +213,17 @@ protected:
             for (int j=0; j<this->N; j++) {
                 total = total + this->states[j] * this->weights[j][i];
             }
-            result[i] = total;
+            this->result[i] = total;
         }
 
         // squash
         for (int i=0; i<this->N; i++) {
-            result[i] = 2/(1+exp(-result[i]))-1;
+            this->result[i] = Flt{2}/(Flt{1} + std::exp(-this->result[i])) - Flt{1}; // range 0 to 1
         }
 
         // add input to result and place in this->states
         for (int i=0; i<this->N; i++) {
-            this->states[i] = result[i] + inputs[i];
+            this->states[i] = this->result[i] + this->inputs[i];
         }
     }
 
@@ -293,7 +293,6 @@ protected:
     // Perform one step of the forward-pass through the network
     void step (int knockout)
     {
-        std::vector<Flt> result(this->N);
         Flt total = Flt{0};
 
         // generate dot product
@@ -302,22 +301,22 @@ protected:
             for (int j=0; j<this->N; j++) {
                 total = total + this->states[j] * this->weights[j][i];
             }
-            result[i] = total;
+            this->result[i] = total;
         }
 
         // squash
-        for (int i=0; i<this->N; i++) {
-            result[i] = Flt{1} / (Flt{1} + std::exp(-result[i]));
+        for (int i=2; i<this->N; i++) {
+            this->result[i] = Flt{1} / (Flt{1} + std::exp(-this->result[i])); // range -1 to 1
         }
-        result[0] = 0;
-        result[1] = 0;
-        result[this->bias] = Flt{1};
+        this->result[0] = 0;
+        this->result[1] = 0;
+        this->result[this->bias] = Flt{1};
         // added in
-        if (knockout != 0) { result[knockout+this->konode-1] = Flt{0}; }
+        if (knockout != 0) { this->result[knockout+this->konode-1] = Flt{0}; }
 
         // add input
         for (int i=0; i<this->N; i++) {
-            this->states[i] = result[i] + this->inputs[i];
+            this->states[i] = this->result[i] + this->inputs[i];
         }
     }
 
