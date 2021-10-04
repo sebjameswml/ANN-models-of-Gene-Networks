@@ -11,38 +11,33 @@
 using std::cout;
 using std::endl;
 
-int main(int argc, char** argv){
-
-    if (argc < 2){
-        cout << "args required" << endl;
+int main (int argc, char** argv)
+{
+    if (argc < 3) {
+        cout << "2 args required" << endl;
         return 1;
     }
 
+    // Parameters
     const int ID = atoi(argv[1]);
     const float learnrate = 0.05;
-
     const int N = atoi(argv[2]);
     const int N2 = N*N;
-
-    const int trials = 1000000; // 5,000,000 should produce extremely accurate reproductions and take 5 mins
-
+    const int trials = 5000000; // 5,000,000 should produce extremely accurate reproductions and take 5 mins
     const int npixels = 1000;
     const int sampling = 1000;
     const int decay = 0;
+    const int bias = 6;
+    const int konode = 7; // the first knockout will be this node, the second is konode + 1 and so on.
 
     // Set random seed
     srand(ID+1);
 
-    int bias = 6;
-    int konode = 7; // the first knockout will be this node, the second is konode + 1 and so on.
-
     std::vector<int> inputs = {0,1};
     std::vector<int> outputs = {2,3,4,5};
+    // weightexistence is a flattened NxN matrix with 0s where there is no connection
+    // and 1 where there is. Initialise with 1s
     std::vector<int> weightexistence (N2, 1);
-
-    // This is the section where network structure is determined, in this case its a
-    // recurrent net.  weightexistence is a flattened NxN matrix with 0s where there is
-    // no connection and 1 where there is.
 
     // no weights back to bias node
     for (int i=0; i<N; i++) { weightexistence[i*N+bias] = 0; }
@@ -54,16 +49,17 @@ int main(int argc, char** argv){
     rNet.konode = konode;
     rNet.bias = bias;
     rNet.weightexistence = weightexistence;
-
+    rNet.learnrate = learnrate;
+    // These two not necessary, but removal changes the results.
     rNet.randommatrix(rNet.weights);
     rNet.randommatrix(rNet.best);
 
     std::vector<bitmap_image*> images; images.reserve(5);
-    bitmap_image image0("knockoutimgs/0.bmp");
-    bitmap_image image1("knockoutimgs/1.bmp");
-    bitmap_image image2("knockoutimgs/2.bmp");
-    bitmap_image image3("knockoutimgs/3.bmp");
-    bitmap_image image4("knockoutimgs/4.bmp");
+    bitmap_image image0("knockoutimgs/0.bmp"); // Wildtype
+    bitmap_image image1("knockoutimgs/1.bmp"); // Manipulation - green enlarged
+    bitmap_image image2("knockoutimgs/2.bmp"); // Manipulation - red reduced
+    bitmap_image image3("knockoutimgs/3.bmp"); // Manipulation - Red enlarged, blue, green reduced
+    bitmap_image image4("knockoutimgs/4.bmp"); // Manipulation - Cyan regions
     images[0] = &image0; images[1] = &image1; images[2] = &image2; images[3] = &image3; images[4] = &image4;
 
     const unsigned int imageWidth = image0.width();
@@ -77,31 +73,28 @@ int main(int argc, char** argv){
     float rx = 0.0f;
     float ry = 0.0f;
     int rk = 0;
-
     float x = 0.0f;
     float y = 0.0f;
-
     float besterror = 10000;
     int bestcolor = 0;
-
     // flag to say if a pixel has been picked which has an appropriate colour.
     int flag = 0;
 
     std::vector<rgb_t> areacolours (5);
-    areacolours[0] = make_colour (255,255,255);
-    areacolours[1] = make_colour (255,  0,  0);
-    areacolours[2] = make_colour (  0,  0,255);
-    areacolours[3] = make_colour (  0,255,  0);
-    areacolours[4] = make_colour (255,  0,255);
-    std::vector<std::vector<float>> targetmappings{ {0,0,0,0}, {1,0,0,0}, {0,1,0,0}, {0,0,1,0}, {0,0,0,1} };
-
+    areacolours[0] = make_colour (255,255,255); // White
+    areacolours[1] = make_colour (255,  0,  0); // Red
+    areacolours[2] = make_colour (  0,  0,255); // Blue
+    areacolours[3] = make_colour (  0,255,  0); // Green
+    areacolours[4] = make_colour (255,  0,255); // Magenta
+    std::vector<std::vector<float>> targetmappings{ {0,0,0,0},   // White: No out nodes active
+                                                    {1,0,0,0},   // Red: 1st node active
+                                                    {0,1,0,0},   // Blue: 2nd node active
+                                                    {0,0,1,0},   // Green: 3rd node active
+                                                    {0,0,0,1} }; // Magenta: 4th node active
     std::vector<float> errors;
 
-    rNet.learnrate = learnrate;
     cout << "Looping over " << trials << " trials\n";
     for (int trial = 0; trial<trials; trial++) {
-        // if(trial%(trials/100)==0) { cout<<trial<<" "<<besterror<<endl; }
-
         // decrease learnrate over time if option selected in configs
         if (decay==1) { rNet.learnrate = learnrate * std::exp(-trial*1/trials); }
 
@@ -114,11 +107,7 @@ int main(int argc, char** argv){
         // Pick a random knockout image
         rk = rand() % 4;
 
-        //cout << "rx,ry = " << rx << "," << ry << " and x,y = "<< x << "," << y << " and rk = " << rk << endl;
-
-        // Set the target based on the colour of the pixel:
-
-        // first get the colour
+        // Set the target based on the colour of the pixel. First get the colour.
         rgb_t colour;
         images[rk]->get_pixel (int(rx), int(ry), colour);
 
@@ -170,9 +159,8 @@ int main(int argc, char** argv){
 
                 flag = 0;
                 for (int i=0;i<5;i++) {
-                    // Get the colour for
                     if (colour == areacolours[i]) {
-                        for(int n=0; n<4; n++) {
+                        for (int n=0; n<4; n++) {
                             rNet.target[outputs[0]+n] = targetmappings[i][n];
                         }
                         rNet.inputs[inputs[0]] = x;
@@ -218,7 +206,6 @@ int main(int argc, char** argv){
                 bestweights.push_back (rNet.best[i][j]);
             }
         }
-
         d.add_contained_vals ("/bestweights", bestweights);
         d.add_contained_vals ("/structure", weightexistence);
 
@@ -227,11 +214,9 @@ int main(int argc, char** argv){
 
         std::vector<float> outputStates;
         for (int rk=0; rk<4; rk++) {
-            //At the end generate an image from the set of weights
+            // At the end generate an image from the set of weights
             bitmap_image generated(150,100);
-
-            // set background to white
-            generated.clear();
+            generated.clear(); // init to white
 
             for (float x=0; x<imageWidth; x++) {
                 for (float y=0; y<imageHeight; y++) {
@@ -257,9 +242,9 @@ int main(int argc, char** argv){
                     for (int i=0; i<5; i++) {
                         float sum = 0.0f;
                         for (int node=0; node<4; node++) {
-                            sum = sum + (rNet.states[outputs[0]+node]-targetmappings[i][node])*(rNet.states[outputs[0]+node]-targetmappings[i][node]);
+                            sum = sum + (rNet.states[outputs[0]+node] - targetmappings[i][node]) * (rNet.states[outputs[0]+node] - targetmappings[i][node]);
                         }
-                        if (sum < besterror){
+                        if (sum < besterror) {
                             besterror = sum;
                             bestcolor = i;
                         }
@@ -268,10 +253,9 @@ int main(int argc, char** argv){
                 }
             }
 
-            std::string bmpfile = "results/"+std::to_string(ID)+"-"+std::to_string(rk)+ ".bmp";
-            generated.save_image(bmpfile);
+            std::string bmpfile = "results/" + std::to_string(ID) + "-" + std::to_string(rk) + ".bmp";
+            generated.save_image (bmpfile);
         }
-
         d.add_contained_vals ("/outputstates", outputStates);
     }
     return 0;

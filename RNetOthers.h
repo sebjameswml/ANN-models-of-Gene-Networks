@@ -131,6 +131,9 @@ template <class Flt>
 class RNetEvolve : public RNet<Flt>
 {
 public:
+    float p = 0.3;
+    float p_link = 0.1;
+
     void updateWeights() {
         //destroy or create links by altering each element of matrix with probability p_link
         for(int i=0; i<this->N; i++){
