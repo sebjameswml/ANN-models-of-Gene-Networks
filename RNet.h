@@ -59,6 +59,7 @@ public:
         for (std::vector<Flt>& w_inner : this->nudge) {
             w_inner.resize (this->N);
         }
+        RNet<Flt>::randommatrix (this->best);
 #endif
         // init weights with random numbers
         RNet<Flt>::randommatrix (this->weights);
