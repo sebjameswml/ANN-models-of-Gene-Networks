@@ -191,12 +191,10 @@ public:
             if (test > 10) { break; } // in the event of an island
         }
 
-        // Once every node has a delta update all the weights
+        // Once every node has a delta update all the weights (except where weightexistence matrix has zeros)
         for (int i=0; i<this->N; i++) {
             for (int j=0; j<this->N; j++) {
-                this->weights[i][j] += this->states[i]*deltas[j];
-                //zero for weights that don't exist
-                this->weights[i][j] = this->weightexistence[this->N*i+j] ? this->weights[i][j] : Flt{0};
+                this->weights[i][j] = this->weightexistence[this->N*i+j] ? (this->weights[i][j] + this->states[i] * deltas[j]) : Flt{0};
             }
         }
     }
