@@ -48,9 +48,11 @@ if (os.path.exists('dans_genenet')
                  or os.path.getctime('dans_genenet') < os.path.getmtime('RNet.h'))) or not os.path.exists('dans_genenet'):
 
     print ('\nCompiling program with:\n   {0}'.format(compile_cmd))
-    os.system (compile_cmd)
+    cmdrtn = os.system (compile_cmd)
+    if cmdrtn != 0:
+        print ('Failed to compile program. Exiting.')
+        exit (1)
     print ('...done.\n')
-
 else:
     print ('dans_genenet binary is up to date.\n')
 

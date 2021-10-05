@@ -23,6 +23,8 @@ int main (int argc, char** argv)
     const int ID = atoi(argv[1]);
     const int N = atoi(argv[2]);
     const int N2 = N*N;
+    // Set random seed
+    srand(ID+1);
 
     // Parameters taken from morph::Config
     morph::Config conf("dans_genenet.json");
@@ -32,14 +34,13 @@ int main (int argc, char** argv)
     const int npixels = conf.getInt ("npixels", 1000);
     const int sampling = conf.getInt ("sampling", 1000);
     const bool decay = conf.getBool ("decay_learnrate", false);
-    const int bias = conf.getInt ("bias_node", 6);
-    const int konode = conf.getInt ("knockout_node", 7); // the first knockout will be this node, the second is konode + 1 and so on.
 
-    // Set random seed
-    srand(ID+1);
-
+    // Define which nodes are inputs, outputs, the bias, and the knockout node range
     std::vector<int> inputs = {0,1};
     std::vector<int> outputs = {2,3,4,5};
+    const int bias = conf.getInt ("bias_node", 6);
+    const int konode = conf.getInt ("knockout_node", 7); // the first knockout node
+
     // weightexistence is a flattened NxN matrix with 0s where there is no connection
     // and 1 where there is. Initialise with 1s
     std::vector<int> weightexistence (N2, 1);
@@ -220,38 +221,36 @@ int main (int argc, char** argv)
         std::vector<float> outputStates;
         for (int rk=0; rk<4; rk++) {
             // At the end generate an image from the set of weights
-            bitmap_image generated(150,100);
-            generated.clear(); // init to white
+            bitmap_image generated(150, 100, true);
 
             for (float x=0; x<imageWidth; x++) {
                 for (float y=0; y<imageHeight; y++) {
                     rNet.inputs[inputs[0]] = x/imageWidth;
                     rNet.inputs[inputs[1]] = y/imageHeight;
 
-                    rNet.randomiseStates();
-                    rNet.states[bias] = 1;
-                    rNet.states[0] = x/imageWidth;
-                    rNet.states[1] = y/imageHeight;
-                    rNet.average(rk);
-                    if (rk == 0) {
+                    rNet.randomiseStates(); // Start with random states
+                    rNet.states[bias] = 1;  // Set the bias state to its usual value of 1
+                    rNet.states[0] = x/imageWidth;  // Set the input
+                    rNet.states[1] = y/imageHeight; // input
+                    rNet.average(rk);       // Run for 50 steps and find the average values of the states
+                    if (rk == 0) { // rk==0 is the wildtype, for which we save outputStates
                         outputStates.push_back(x);
                         outputStates.push_back(y);
-                        // log all the values for all nodes, one long vector of form [x0,y0,n0,n1...]
-                        for (int n = 0; n<rNet.N; n++) {
-                            outputStates.push_back (rNet.states[n]);
-                        }
+                        // log all the values for all nodes *for each pixel*. One long vector of form [x0,y0,n0,n1...]
+                        for (int n = 0; n<rNet.N; n++) { outputStates.push_back (rNet.states[n]); }
                     }
 
-                    besterror = 20;
+                    besterror = std::numeric_limits<float>::max();
                     // find out what colour the pixel is by finding the least distance to the 5 options
-                    for (int i=0; i<5; i++) {
+                    for (int c=0; c<5; c++) { // loop over 5 colours
                         float sum = 0.0f;
-                        for (int node=0; node<4; node++) {
-                            sum = sum + (rNet.states[outputs[0]+node] - targetmappings[i][node]) * (rNet.states[outputs[0]+node] - targetmappings[i][node]);
+                        for (int node=0; node<4; node++) { // loop over 4 output nodes
+                            int oi = outputs[0] + node; // current output index
+                            sum += (rNet.states[oi] - targetmappings[c][node]) * (rNet.states[oi] - targetmappings[c][node]);
                         }
                         if (sum < besterror) {
                             besterror = sum;
-                            bestcolor = i;
+                            bestcolor = c;
                         }
                     }
                     generated.set_pixel (x, y, areacolours[bestcolor]);

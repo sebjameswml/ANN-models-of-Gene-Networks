@@ -76,7 +76,7 @@ public:
       load_bitmap();
    }
 
-   bitmap_image(const unsigned int width, const unsigned int height)
+    bitmap_image(const unsigned int width, const unsigned int height, const bool initwhite = false)
    : file_name_(""),
      width_ (width ),
      height_(height),
@@ -85,6 +85,7 @@ public:
      channel_mode_(bgr_mode)
    {
       create_bitmap();
+      if (initwhite) { this->clear(); }
    }
 
    bitmap_image(const bitmap_image& image)

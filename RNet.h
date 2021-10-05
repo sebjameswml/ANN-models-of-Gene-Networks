@@ -20,8 +20,6 @@ public:
     std::vector<Flt> result;    // A temporary variable used in the step() function. Size N.
 
     Flt learnrate = 0.1;        // Learning rate of the algorithm
-
-    int konode = 3;             // if the ko = 1 the node index is ko+3-1 = 3, the 4th node
     int bias = 2;               // Which node is the 'bias node'?
 
     // Initialise a random weights matrix
@@ -256,12 +254,14 @@ public:
 #endif
 };
 
-// Example of a derived class with a specialisation of a method. This is the
-// specialisation used in the version of Dan's main.cpp that I'm working with.
+// This class allows for running the network with one of the genes knocked out,
+// simulating one of the gene knockout conditions.
 template <class Flt>
 class RNetKnock : public RNet<Flt>
 {
 public:
+    int konode = 3; // Node index of the first knockout
+
     // Find the average value of each node after 50 forward iterations of the
     // network. This is one way to do the 'forward pass' of the network. The other is to
     // use the converge() function (untested by Seb)
