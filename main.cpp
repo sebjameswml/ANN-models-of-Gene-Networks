@@ -56,9 +56,6 @@ int main (int argc, char** argv)
     rNet.bias = bias;
     rNet.weightexistence = weightexistence;
     rNet.learnrate = learnrate;
-    // These two not necessary, but removal changes the results.
-    rNet.randommatrix(rNet.weights);
-    rNet.randommatrix(rNet.best);
 
     std::vector<bitmap_image*> images; images.reserve(5);
     bitmap_image image0("knockoutimgs/0.bmp"); // Wildtype
@@ -104,7 +101,7 @@ int main (int argc, char** argv)
         // decrease learnrate over time if option selected in configs
         if (decay == true) { rNet.learnrate = learnrate * std::exp(-trial*1/trials); }
 
-        // Pick a random pixel and check its within the bounds of the ellipse
+        // Pick a random pixel
         rx = rand() % imageWidth;
         ry = rand() % imageHeight;
         x =  rx / imageWidth;
@@ -144,16 +141,9 @@ int main (int argc, char** argv)
             float error = 0.0f;
             while (tally < npixels) {
 
-                while (true) {
-                    // Pick a random pixel and check its within the bounds of the ellipse
-                    rx = rand() % imageWidth;
-                    ry = rand() % imageHeight;
-                    // equation of ellipse<=1
-                    if (((rx-imageWidth/2)/(imageWidth/2))*((rx-imageWidth/2)/(imageWidth/2))+
-                        ((ry-imageHeight/2)/(imageHeight/2))*((ry-imageHeight/2)/(imageHeight/2))<=1) {
-                        break;
-                    }
-                } // Now have an in-bounds random pixel defined by rx, ry
+                // Pick a random pixel
+                rx = rand() % imageWidth;
+                ry = rand() % imageHeight;
 
                 x = rx / (float) imageWidth;
                 y = ry / (float) imageHeight;
